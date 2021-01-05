@@ -493,6 +493,19 @@ class PickerModule extends ReactContextBaseJavaModule implements ActivityEventLi
         return getImage(activity, path);
     }
 
+    private void getAsyncSelections(final Activity activity, final ArrayList<Uri> paths) {
+        new Thread(new Runnable() {
+            public void run() {
+                try {
+                    for (int i = 0; i < paths.size(); i++) {
+                        getAsyncSelection(activity, Uri.parse(paths.get(i).toString()), false);
+                    }
+                } catch (Exception ex) {
+                    resultCollector.notifyProblem(E_NO_IMAGE_DATA_FOUND, "Cannot resolve asset path.");
+                }
+            }
+        }).start();
+    }
     private void getAsyncSelection(final Activity activity, Uri uri, boolean isCamera) throws Exception {
         String path = resolveRealPath(activity, uri, isCamera);
         if (path == null || path.isEmpty()) {
@@ -704,12 +717,10 @@ class PickerModule extends ReactContextBaseJavaModule implements ActivityEventLi
                     ClipData clipData = data.getClipData();
 
                     try {
-                        ArrayList path = new ArrayList<Uri>();
-                                                path = data.getStringArrayListExtra(FishBun.INTENT_PATH);
-                                                resultCollector.setWaitCount(path.size());
-                                                for (int i = 0; i < path.size(); i++) {
-                                                getAsyncSelection(activity, Uri.parse(path.get(i).toString()), false);
-                                                }
+                        ArrayList paths = new ArrayList<Uri>();
+                        paths = data.getStringArrayListExtra(FishBun.INTENT_PATH);
+                        resultCollector.setWaitCount(paths.size());
+                        getAsyncSelections(activity, paths);
                     } catch (Exception ex) {
                         resultCollector.notifyProblem(E_NO_IMAGE_DATA_FOUND, ex.getMessage());
                     }
